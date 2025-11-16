@@ -1,2 +1,2 @@
-v1 -- stands for Vectorization with Word2Vec + simple architecture (Accuracy 0.86)
+v1 -- stands for Vectorization with Word2Vec + simple architecture (Accuracy 0.86) \\
 v2 -- stands for Vectorization via FastText (similar to the paper) + more robust architecture with BiLSTM stacking (Accuracy 0.88)
