@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Interview Emotion & Personality Analysis</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style type="text/tailwindcss">
+    :root {
+      --bg-primary: #1A202C;
+      --bg-secondary: #2D3748;
+      --text-primary: #E2E8F0;
+      --text-secondary: #A0AEC0;
+      --accent-primary: #63B3ED;
+      --accent-secondary: #4FD1C5;
+      --border-primary: #4A5568;
+      --shadow-color: rgba(0, 0, 0, 0.2);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .card {
+      background-color: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 12px var(--shadow-color);
+      border: 1px solid var(--border-primary);
+    }
+
+    .title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .title .material-icons {
+      color: var(--accent-primary);
+      margin-right: 0.75rem;
+    }
+
+    .chart-container,
+    .spider-chart-container {
+      position: relative;
+      height: 260px;
+      width: 100%;
+    }
+
+    .header-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .header-subtitle {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+    }
+
+    .video-placeholder {
+      background-color: var(--border-primary);
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .video-placeholder p {
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="text-center mb-10">
+      <h1 class="header-title">Interview Analysis</h1>
+      <p class="header-subtitle">
+        AI-powered evaluation of emotions and personality traits during interviews.
+      </p>
+    </header>
+
+    <!-- Video card -->
+    <div class="card mb-4">
+      <h2 class="title">
+        <span class="material-icons">videocam</span> Interview Video
+      </h2>
+      <video class="video-placeholder" controls muted>
+        <source src="interview_example.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+
+    <!-- Analyse button -->
+    <button
+      class="w-full mt-2 py-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow hover:bg-[var(--bg-primary)] transition"
+      id="analyzeButton">
+      Analyse the Interview
+    </button>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <!-- Emotion from Video -->
+      <div class="card">
+        <h2 class="title">
+          <span class="material-icons">face</span> Emotion Analysis from Video
+        </h2>
+        <div class="chart-container">
+          <canvas id="facialExpressionChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Big 5 from Text -->
+      <div class="card">
+        <h2 class="title">
+          <span class="material-icons">record_voice_over</span> Big 5 Personality Trait Analysis from Text
+        </h2>
+        <div class="spider-chart-container">
+          <canvas id="spiderChartVerbal"></canvas>
+        </div>
+        <p class="text-xs text-center text-[var(--text-secondary)] mt-1">
+          Distribution of traits inferred from text.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chartTextColor = '#A0AEC0';
+    const chartGridColor = '#4A5568';
+
+    // Helper for line chart options
+    function lineChartOptions(yLabel, xLabel = 'Time') {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: yLabel,
+              color: chartTextColor
+            },
+            ticks: {
+              color: chartTextColor
+            },
+            grid: {
+              color: chartGridColor
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: xLabel,
+              color: chartTextColor
+            },
+            ticks: {
+              color: chartTextColor
+            },
+            grid: {
+              color: chartGridColor
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: chartTextColor,
+              usePointStyle: true
+            }
+          }
+        }
+      };
+    }
+
+    // === Emotion Analysis from Video: multi-emotion chart ===
+    const emotionSpectrumData = {
+      happiness: [0.2, 0.3, 0.7, 0.8, 0.6, 0.7, 0.9],
+      sadness:   [0.1, 0.2, 0.1, 0.3, 0.2, 0.1, 0.1],
+      anger:     [0.05, 0.1, 0.05, 0.1, 0.15, 0.1, 0.05],
+      surprise:  [0.3, 0.4, 0.2, 0.5, 0.3, 0.6, 0.4],
+      disgust:   [0.02, 0.05, 0.03, 0.08, 0.05, 0.06, 0.04],
+      fear:      [0.01, 0.03, 0.02, 0.04, 0.03, 0.02, 0.01]
+    };
+
+    const facialCtx = document.getElementById('facialExpressionChart').getContext('2d');
+    new Chart(facialCtx, {
+      type: 'line',
+      data: {
+        labels: ['0s', '10s', '20s', '30s', '40s', '50s', '60s'],
+        datasets: [
+          {
+            label: 'Happiness',
+            data: emotionSpectrumData.happiness,
+            borderColor: '#60a5fa',           // light blue
+            backgroundColor: 'rgba(96,165,250,0.2)',
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: '#60a5fa'
+          },
+          {
+            label: 'Sadness',
+            data: emotionSpectrumData.sadness,
+            borderColor: '#22d3ee',           // cyan
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            borderWidth: 1.5,
+            pointRadius: 2,
+            borderDash: [6, 4],
+            pointBackgroundColor: '#22d3ee'
+          },
+          {
+            label: 'Anger',
+            data: emotionSpectrumData.anger,
+            borderColor: '#fb7185',           // red
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            borderWidth: 1.5,
+            pointRadius: 2,
+            borderDash: [6, 4],
+            pointBackgroundColor: '#fb7185'
+          },
+          {
+            label: 'Surprise',
+            data: emotionSpectrumData.surprise,
+            borderColor: '#fbbf24',           // yellow
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            borderWidth: 1.5,
+            pointRadius: 2,
+            borderDash: [6, 4],
+            pointBackgroundColor: '#fbbf24'
+          },
+          {
+            label: 'Disgust',
+            data: emotionSpectrumData.disgust,
+            borderColor: '#a855f7',           // purple
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            borderWidth: 1.5,
+            pointRadius: 2,
+            borderDash: [6, 4],
+            pointBackgroundColor: '#a855f7'
+          },
+          {
+            label: 'Fear',
+            data: emotionSpectrumData.fear,
+            borderColor: '#92400e',           // brown
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            borderWidth: 1.5,
+            pointRadius: 2,
+            borderDash: [6, 4],
+            pointBackgroundColor: '#92400e'
+          }
+        ]
+      },
+      options: lineChartOptions('Emotion Probability', 'Time')
+    });
+
+    // === Big 5 Personality Trait Analysis from Text (radar chart) ===
+    const spiderCtx = document.getElementById('spiderChartVerbal').getContext('2d');
+    new Chart(spiderCtx, {
+      type: 'radar',
+      data: {
+        labels: ['Agreeableness', 'Neuroticism', 'Openness', 'Conscientiousness', 'Extraversion'],
+        datasets: [{
+          label: 'Big 5 Profile',
+          data: [0.7, 0.3, 0.8, 0.6, 0.5],
+          fill: true,
+          backgroundColor: 'rgba(99, 179, 237, 0.3)',
+          borderColor: '#63B3ED',
+          pointBackgroundColor: '#63B3ED',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            angleLines: { color: chartGridColor },
+            grid: { color: chartGridColor },
+            pointLabels: { color: chartTextColor },
+            ticks: {
+              color: chartTextColor,
+              stepSize: 0.2,
+              backdropColor: 'rgba(45, 55, 72, 0.75)'
+            },
+            suggestedMin: 0,
+            suggestedMax: 1
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+
+    // Simple demo action for the button
+    document.getElementById('analyzeButton').addEventListener('click', () => {
+      alert('Interview analysis started (demo).');
+    });
+  </script>
+</body>
+
+</html>
