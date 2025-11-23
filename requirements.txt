@@ -1,0 +1,17 @@
+streamlit
+moviepy
+faster-whisper
+numpy
+tqdm
+typing-extensions
+plotly
+torch
+torchvision
+opencv-python
+numpy
+Pillow
+facenet-pytorch
+pandas
+tqdm
+matplotlib
+seaborn

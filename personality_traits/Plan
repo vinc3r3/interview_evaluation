@@ -1,0 +1,13 @@
+Goal to write a code that tests the accuracy (1-MAE) of the prediction of big5 personality traits from text
+
+Objectives:
+1. Write a prompt with rubric that outputs only the number between [0,1] for GPT5 nano for personality inference using info from wikipedia: https://en.wikipedia.org/wiki/Big_Five_personality_traits
+2. Write code that ckecks accuracy over 500 samples
+3. Get your api
+4. Check if accuracy changes if it gets average of 5 responces
+5. Add this function that function to main code
+6. Write a prompt that explains its decision
+
+
+LLM as a judge
+I do not care if it is valid, the most important thing: can it persuade a user about his data
