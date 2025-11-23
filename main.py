@@ -64,12 +64,13 @@ if st.button("Analyse the Interview"):
             st.error("Default video file not found. Please upload a video.")
 
     if video_to_process is not None:
-        with st.spinner("Extracting audio..."):
-            # Save the video to a temporary file
-            temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-            temp_video.write(video_to_process.read())
-            temp_video.close()
+        # Save the video to a temporary file
+        temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+        temp_video.write(video_to_process.read())
+        temp_video.close()
 
+        # ===== TRANSCRIPTION =====
+        with st.spinner("Extracting audio..."):
             # Extract audio as WAV (16kHz mono)
             clip = VideoFileClip(temp_video.name)
             temp_audio = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
@@ -83,11 +84,10 @@ if st.button("Analyse the Interview"):
                 word_timestamps=False    # change to True if needed
             )
 
-        # Remove temp files
-        os.remove(temp_video.name)
+        # Remove audio temp file
         os.remove(temp_audio.name)
 
-        # --------------- Output ---------------
+        # --------------- Transcription Output ---------------
         st.subheader("📄 Transcription")
         final_text = ""
 
@@ -96,128 +96,9 @@ if st.button("Analyse the Interview"):
 
         st.write(final_text.strip())
 
-    else:
-        st.error("Please upload a video or ensure the default video exists.")
+        st.markdown("---")
 
-st.markdown("---")
-
-# ---------------- Emotion Analysis from Video ----------------
-
-# Same data as in your HTML example
-emotion_spectrum_data = {
-    "Happiness": [0.2, 0.3, 0.7, 0.8, 0.6, 0.7, 0.9],
-    "Sadness":   [0.1, 0.2, 0.1, 0.3, 0.2, 0.1, 0.1],
-    "Anger":     [0.05, 0.1, 0.05, 0.1, 0.15, 0.1, 0.05],
-    "Surprise":  [0.3, 0.4, 0.2, 0.5, 0.3, 0.6, 0.4],
-    "Disgust":   [0.02, 0.05, 0.03, 0.08, 0.05, 0.06, 0.04],
-    "Fear":      [0.01, 0.03, 0.02, 0.04, 0.03, 0.02, 0.01],
-}
-time_labels = ["0s", "10s", "20s", "30s", "40s", "50s", "60s"]
-
-fig_emotion = go.Figure()
-
-# Merge all emotions into a single loop with specific colors
-emotion_colors = {
-    "Happiness": "#FFFF00",  # Vibrant Yellow
-    "Sadness": "#0000FF",   # Blue
-    "Anger": "#FF0000",     # Bright Red
-    "Surprise": "#00FFFF",  # Light Cyan (bright hue)
-    "Disgust": "#008000",   # Classic Green
-    "Fear": "#BB00FF"       # Purple
-}
-
-# Merge all emotions into a single loop
-for emo, data in emotion_spectrum_data.items():
-    fig_emotion.add_trace(
-        go.Scatter(
-            x=time_labels,
-            y=data,
-            mode="lines+markers",
-            name=emo,
-            line=dict(width=2, shape="spline", color=emotion_colors.get(emo, "#000000")),  # Default to black if not found
-            marker=dict(size=6),
-        )
-    )
-
-fig_emotion.update_layout(
-    xaxis_title="Time",
-    yaxis_title="Emotion Probability",
-    yaxis=dict(range=[0, 1]),
-    legend=dict(orientation="h", y=-0.2),
-    height=400,
-)
-
-# ---------------- Big 5 Personality Trait Analysis from Text ----------------
-
-traits = ["Agreeableness", "Neuroticism", "Openness", "Conscientiousness", "Extraversion"]
-scores = [0.7, 0.3, 0.8, 0.6, 0.5]
-
-# Close the loop for radar plot
-traits_closed = traits + [traits[0]]
-scores_closed = scores + [scores[0]]
-
-fig_big5 = go.Figure()
-
-fig_big5.add_trace(
-    go.Scatterpolar(
-        r=scores_closed,
-        theta=traits_closed,
-        fill="toself",
-        name="Big 5 Profile",
-        fillcolor="rgba(0, 123, 255, 0.2)",  # Subtle blue fill
-        line=dict(color="rgba(0, 123, 255, 1)", width=2),  # Blue border
-    )
-)
-
-fig_big5.update_layout(
-    polar=dict(
-        radialaxis=dict(
-            visible=True,
-            range=[0, 1],
-            dtick=0.2,
-            gridcolor="rgba(255, 255, 255, 0.1)",  # Subtle grid lines
-            linecolor="rgba(255, 255, 255, 0.3)",  # Subtle axis lines
-        ),
-        bgcolor="rgba(0, 0, 0, 0)",  # Transparent background
-    ),
-    showlegend=False,
-    height=450,
-    paper_bgcolor="rgba(0, 0, 0, 0)",  # Transparent paper background
-    plot_bgcolor="rgba(0, 0, 0, 0)",  # Transparent plot background
-)
-
-# Create columns for side-by-side charts
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("🎨 Emotion Analysis")
-    st.plotly_chart(fig_emotion, use_container_width=True, height=300)  # Reduced height
-
-with col2:
-    st.subheader("🗣️ Big 5 Personality Trait Analysis")
-    st.plotly_chart(fig_big5, use_container_width=True, height=300)  # Reduced height
-
-# ---------------- Emotion Analysis from Video (Button and Processing) ----------------
-
-if st.button("Analyze Emotion"):
-    video_to_process = uploaded_video
-
-    if uploaded_video is None:
-        # Use default video if no video is uploaded
-        default_video_path = "/Users/nursultanatymtay/Desktop/Senior Project/Project/interview_evaluation/interview_example.mp4"
-        if os.path.exists(default_video_path):
-            video_to_process = open(default_video_path, "rb")
-        else:
-            st.error("Default video file not found. Please upload a video.")
-
-    if video_to_process is not None:
-        # Save the video to a temporary file
-        temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-        temp_video.write(video_to_process.read())
-        temp_video.close()
-
-        # Call the video_inference.py script
-        import subprocess
+        # ===== EMOTION ANALYSIS =====
         import pandas as pd
         from emotion_recognition.video_inference import VideoEmotionDetector
 
@@ -245,7 +126,6 @@ if st.button("Analyze Emotion"):
 
             st.subheader("🎨 Emotion Analysis Table")
             st.dataframe(df_aggregated)
-
 
             # Update the emotion graph with new data from the aggregated dataframe
             if not df_aggregated.empty:
@@ -301,3 +181,51 @@ if st.button("Analyze Emotion"):
 
         # Remove the temporary video file
         os.remove(temp_video.name)
+
+    else:
+        st.error("Please upload a video or ensure the default video exists.")
+
+st.markdown("---")
+
+
+# ---------------- Big 5 Personality Trait Analysis from Text ----------------
+
+traits = ["Agreeableness", "Neuroticism", "Openness", "Conscientiousness", "Extraversion"]
+scores = [0.7, 0.3, 0.8, 0.6, 0.5]
+
+# Close the loop for radar plot
+traits_closed = traits + [traits[0]]
+scores_closed = scores + [scores[0]]
+
+fig_big5 = go.Figure()
+
+fig_big5.add_trace(
+    go.Scatterpolar(
+        r=scores_closed,
+        theta=traits_closed,
+        fill="toself",
+        name="Big 5 Profile",
+        fillcolor="rgba(0, 123, 255, 0.2)",  # Subtle blue fill
+        line=dict(color="rgba(0, 123, 255, 1)", width=2),  # Blue border
+    )
+)
+
+fig_big5.update_layout(
+    polar=dict(
+        radialaxis=dict(
+            visible=True,
+            range=[0, 1],
+            dtick=0.2,
+            gridcolor="rgba(255, 255, 255, 0.1)",  # Subtle grid lines
+            linecolor="rgba(255, 255, 255, 0.3)",  # Subtle axis lines
+        ),
+        bgcolor="rgba(0, 0, 0, 0)",  # Transparent background
+    ),
+    showlegend=False,
+    height=450,
+    paper_bgcolor="rgba(0, 0, 0, 0)",  # Transparent paper background
+    plot_bgcolor="rgba(0, 0, 0, 0)",  # Transparent plot background
+)
+
+st.subheader("🗣️ Big 5 Personality Trait Analysis")
+st.plotly_chart(fig_big5, use_container_width=True, height=300)  # Reduced height

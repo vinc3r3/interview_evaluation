@@ -5,3 +5,5 @@ Emotion recognition entegration:
 3. Delete everything unnecessary and leave only functional things
 
 Do not forget to all all emotions to the dataframe
+
+DONE
