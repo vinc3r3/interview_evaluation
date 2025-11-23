@@ -229,8 +229,73 @@ if st.button("Analyze Emotion"):
 
         # Display the dataframe in Streamlit
         if not df.empty:
-            st.subheader("Emotion Analysis Results")
-            st.dataframe(df)
+            # Process the dataframe to average every 15 rows (5 seconds group)
+            df = df.drop(columns=['dominant_emotion', 'confidence', 'frame_number'], errors='ignore')
+            df['group'] = df['timestamp'] // 5  # Group rows by intervals of 5 seconds
+            df_aggregated = df.groupby('group').agg({
+                'timestamp': 'first',  # Keep the first timestamp of the group
+                **{col: 'mean' for col in df.columns if col not in ['timestamp', 'group']}
+            }).reset_index(drop=True)
+
+            # Update the timestamp column to represent the start of each group
+            df_aggregated['timestamp'] = df_aggregated.index * 5
+
+            # Drop the group index and reset the dataframe
+            df_aggregated = df_aggregated.reset_index(drop=True)
+
+            st.subheader("🎨 Emotion Analysis Table")
+            st.dataframe(df_aggregated)
+
+
+            # Update the emotion graph with new data from the aggregated dataframe
+            if not df_aggregated.empty:
+                # Update the emotion graph with new data from the aggregated dataframe
+                emotion_spectrum_data = {
+                    "Happiness": df_aggregated["happy"].tolist(),
+                    "Sadness": df_aggregated["sad"].tolist(),
+                    "Anger": df_aggregated["angry"].tolist(),
+                    "Surprise": df_aggregated["surprise"].tolist(),
+                    "Disgust": df_aggregated["disgust"].tolist(),
+                    "Fear": df_aggregated["fear"].tolist(),
+                    "Neutral": df_aggregated["neutral"].tolist(),  # Add neutral emotion
+                }
+                time_labels = [f"{int(ts)}s" for ts in df_aggregated["timestamp"]]
+
+                emotion_colors = {
+                    "Happiness": "#FFFF00",  # Vibrant Yellow
+                    "Sadness": "#0000FF",   # Blue
+                    "Anger": "#FF0000",     # Bright Red
+                    "Surprise": "#00FFFF",  # Light Cyan (bright hue)
+                    "Disgust": "#008000",   # Classic Green
+                    "Fear": "#BB00FF",       # Purple
+                    "Neutral": "#808080"    # Gray for neutral
+                }
+
+                fig_emotion = go.Figure()
+
+                for emo, data in emotion_spectrum_data.items():
+                    fig_emotion.add_trace(
+                        go.Scatter(
+                            x=time_labels,
+                            y=data,
+                            mode="lines+markers",
+                            name=emo,
+                            line=dict(width=2, shape="spline", color=emotion_colors.get(emo, "#000000")),  # Default to black if not found
+                            marker=dict(size=6),
+                        )
+                    )
+
+                fig_emotion.update_layout(
+                    xaxis_title="Time",
+                    yaxis_title="Emotion Probability",
+                    yaxis=dict(range=[0, 1]),
+                    legend=dict(orientation="h", y=-0.2),
+                    height=400,
+                )
+
+                st.subheader("🎨 Emotions Probabilities through Time")
+                st.plotly_chart(fig_emotion, use_container_width=True)
+
         else:
             st.error("No emotions detected in the video.")
 
