@@ -196,3 +196,43 @@ with col1:
 with col2:
     st.subheader("🗣️ Big 5 Personality Trait Analysis")
     st.plotly_chart(fig_big5, use_container_width=True, height=300)  # Reduced height
+
+# ---------------- Emotion Analysis from Video (Button and Processing) ----------------
+
+if st.button("Analyze Emotion"):
+    video_to_process = uploaded_video
+
+    if uploaded_video is None:
+        # Use default video if no video is uploaded
+        default_video_path = "/Users/nursultanatymtay/Desktop/Senior Project/Project/interview_evaluation/interview_example.mp4"
+        if os.path.exists(default_video_path):
+            video_to_process = open(default_video_path, "rb")
+        else:
+            st.error("Default video file not found. Please upload a video.")
+
+    if video_to_process is not None:
+        # Save the video to a temporary file
+        temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+        temp_video.write(video_to_process.read())
+        temp_video.close()
+
+        # Call the video_inference.py script
+        import subprocess
+        import pandas as pd
+        from emotion_recognition.video_inference import VideoEmotionDetector
+
+        model_path = "/Users/nursultanatymtay/Desktop/Senior Project/Project/interview_evaluation/emotion_recognition/best_model_fixed.pth"
+        detector = VideoEmotionDetector(model_path, device="cpu")
+
+        with st.spinner("Processing video for emotion analysis..."):
+            df = detector.process_video(temp_video.name, sample_rate=10)
+
+        # Display the dataframe in Streamlit
+        if not df.empty:
+            st.subheader("Emotion Analysis Results")
+            st.dataframe(df)
+        else:
+            st.error("No emotions detected in the video.")
+
+        # Remove the temporary video file
+        os.remove(temp_video.name)
