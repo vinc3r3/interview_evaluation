@@ -15,3 +15,5 @@ pandas
 tqdm
 matplotlib
 seaborn
+openai
+typing
