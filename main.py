@@ -185,9 +185,9 @@ if api_key_input:
 
 st.markdown("---")
 
-col_left, col_right = st.columns([2, 1])
+col1, col2, col3 = st.columns([1, 2, 1])
 
-with col_left:
+with col2:  # Middle column - narrower
     st.subheader("Upload or use the demo video:")
 
     uploaded_video = st.file_uploader(
@@ -247,22 +247,32 @@ if st.button("Analyse the Interview"):
 
         # --------------- Transcription Output ---------------
         st.subheader("📄 Transcription")
-        final_text = ""
+        transcription = ""
 
         for seg in segments:
-            final_text += seg.text + " "
+            transcription += seg.text + " "
 
-        st.write(final_text.strip())
+        st.write(transcription.strip())
 
         st.markdown("---")
 
         # ===== PERSONALITY TRAIT ANALYSIS =====
         with st.spinner("Analyzing personality traits..."):
-            personality_result = get_personality_traits_gpt(final_text.strip())
+            personality_result = get_personality_traits_gpt(transcription.strip())
         
         if "error" not in personality_result:
             traits = personality_result.get("traits", ["Agreeableness", "Neuroticism", "Openness", "Conscientiousness", "Extraversion"])
             scores = personality_result.get("scores", [0.5, 0.5, 0.5, 0.5, 0.5])
+            
+            # Create a dataframe with personality traits and scores
+            import pandas as pd
+            df_personality = pd.DataFrame({
+                "Personality Trait": traits,
+                "Score": scores
+            })
+            
+            st.subheader("🗣️ Big 5 Personality Trait Table")
+            st.dataframe(df_personality)
             
             # Close the loop for radar plot
             traits_closed = traits + [traits[0]]
@@ -298,7 +308,7 @@ if st.button("Analyse the Interview"):
                 plot_bgcolor="rgba(0, 0, 0, 0)",  # Transparent plot background
             )
 
-            st.subheader("🗣️ Big 5 Personality Trait Analysis")
+            st.subheader("🗣️ Big 5 Personality Trait Scores")
             st.plotly_chart(fig_big5, use_container_width=True)
         else:
             st.error(f"Error analyzing personality traits: {personality_result.get('error', 'Unknown error')}")
@@ -382,6 +392,170 @@ if st.button("Analyse the Interview"):
 
                 st.subheader("🎨 Emotions Probabilities through Time")
                 st.plotly_chart(fig_emotion, use_container_width=True)
+
+                st.markdown("---")
+
+                # ===== BEHAVIORAL ASSESSMENT =====
+                with st.spinner("Generating behavioral assessment..."):
+                    # Convert dataframes to string format for the prompt
+                    emotion_df_str = df_aggregated.to_string(index=False)
+                    personality_df_str = df_personality.to_string(index=False)
+                    
+                    behavioral_prompt = f"""You are a senior organizational psychologist and expert interviewer specializing in competency-based hiring. Your job is to perform a BEHAVIOURAL ASSESSMENT of a candidate based on and give a easy to understand report:
+
+1) The transcription of their interview answer (verbal content and wording),
+2) Their Big Five personality profile inferred from text,
+3) Their emotional probabilities over time inferred from video.
+
+You are given three inputs:
+
+transcription="{transcription.strip()}"
+
+df_emotions=
+"{emotion_df_str}"
+
+df_personality=
+"{personality_df_str}"
+
+Where:
+- `transcription` is the candidate's spoken answer as plain text.
+- `df_emotions` is a table with columns:
+    - timestamp (in seconds),
+    - angry, disgust, fear, happy, sad, surprise, neutral  
+  Each emotion column contains a probability from 0 to 1 at a given timestamp.
+- `df_personality` is a table with two columns:
+    - Personality Trait (Agreeableness, Neuroticism, Openness, Conscientiousness, Extraversion),
+    - Score (a continuous value from 0 to 1, where 0 = very low and 1 = very high).
+
+--------------------
+YOUR TASK
+--------------------
+1. Interpret the transcription:
+   - Identify the candidate's self-presentation style (confident, modest, exaggerated, vague, specific, etc.).
+   - Highlight key behavioural signals in the text: diligence, initiative, teamwork, reliability, learning attitude, problem solving, communication clarity, etc.
+   - Comment on how authentic and consistent their claims sound.
+
+2. Interpret the Big Five personality profile:
+   - Explain what each provided score suggests about the candidate's behaviour at work.
+   - Focus on:
+     - Conscientiousness: reliability, planning, attention to detail.
+     - Agreeableness: teamwork, conflict management, empathy.
+     - Neuroticism: emotional stability, reaction to stress.
+     - Extraversion: communication, energy in social contexts.
+     - Openness: learning, creativity, adaptability.
+   - Relate these traits explicitly to potential job performance (no generic textbook definitions; always tie back to work behaviour).
+
+3. Interpret the emotional timeline from `df_emotions`:
+   - Look at how emotions change over time and identify patterns:
+     - Are positive emotions (e.g., happy) dominant or not?
+     - Are there spikes in negative emotions (angry, fear, sad) at particular points?
+     - Is there a strong neutral baseline or a lot of fluctuation?
+   - Describe what this might mean behaviourally during an interview:
+     - Confidence vs. anxiety,
+     - Authentic enthusiasm vs. forced positivity,
+     - Composure vs. tension or defensiveness.
+   - DO NOT list raw numbers or reproduce the table. Summarize patterns in plain language.
+
+4. Integrate everything into a behavioural assessment in a simple and clear text:
+   - Combine verbal content, personality traits, and emotional patterns.
+   - Evaluate:
+     - Reliability and work ethic,
+     - Teamwork and communication,
+     - Stress tolerance and emotional control,
+     - Learning and adaptability,
+     - Overall job fit from a behavioural standpoint.
+   - If there are contradictions (e.g., very confident words but nervous emotional signals), point them out and explain what they might imply.
+   - Use **bold** text to highlight section headings and important information in your response.
+   - Make section headings bigger than other text, clear and distinct.
+   - Provide output with no more than 300 words.
+
+5. Give a final hiring recommendation SCORE OUT OF 100:
+   - This is a "recommendation strength" score: 0 = strongly not recommended, 100 = extremely strong recommendation.
+   - Base the score on all three sources of evidence (speech, Big Five, emotions).
+   - Be realistic and nuanced (avoid giving 0 or 100 except in extreme, obvious cases).
+   - Briefly justify why you chose that score in terms of job-relevant behaviour.
+
+--------------------
+OUTPUT FORMAT
+--------------------
+Follow this exact structure in your response:
+
+**Behavioural Assessment Summary**
+Write 1 concise paragraph that:
+- Summarize who this candidate appears to be as a professional,
+- Link the transcription content with the Big Five profile,
+- Highlight the most important behavioural strengths and possible risks.\n"
+"\n"
+"\n"
+**Emotional and Personality Insights**
+Write 1 paragraph that:
+- Describe the main emotional patterns over time (e.g., "mostly calm with brief spikes of anxiety when discussing X"),
+- Explain how these emotional patterns interact with the Big Five scores (e.g., high conscientiousness + visible tension, etc.),
+- Comment on authenticity, composure, and how they might behave in real work situations.\n"
+"\n"
+"\n"
+**Recommendation Score**
+On a separate line, output:
+✔️ <NUMBER> / 100 — <one-sentence recommendation>
+
+Where:
+- <NUMBER> is your recommendation score out of 100 (integer or one decimal place),
+- The sentence clearly states whether you recommend inviting the candidate further and for what type of role they seem best suited.
+
+Do NOT repeat the raw tables. Do NOT say "as an AI model." Speak as a human expert interviewer giving a professional behavioural assessment. Never use em dash in your output"""
+
+                    try:
+                        behavioral_response = client.chat.completions.create(
+                            model="gpt-5.1-2025-11-13",
+                            temperature=0.5,
+                            max_completion_tokens=600,
+                            messages=[
+                                {"role": "system", "content": "You are a senior organizational psychologist and expert interviewer specializing in competency-based hiring."},
+                                {"role": "user", "content": behavioral_prompt}
+                            ]
+                        )
+                        
+                        behavioral_assessment = behavioral_response.choices[0].message.content.strip()
+                        
+                        st.subheader("🧠 Behavioral Assessment and Explainability")
+                        
+                        # Apply custom CSS for better readability (default spacing)
+                        st.markdown("""
+                            <style>
+                            .behavioral-assessment {
+                                font-size: 1.1rem;
+                                padding: 20px;
+                                background-color: rgba(255, 255, 255, 0.05);
+                                border-radius: 10px;
+                                margin: 20px 0;
+                            }
+                            .behavioral-assessment h3 {
+                                font-size: 1.3rem;
+                                color: #4da6ff;
+                                font-weight: 600;
+                            }
+                            .behavioral-assessment strong {
+                                font-weight: 600;
+                                color: #ffffff;
+                            }
+                            </style>
+                        """, unsafe_allow_html=True)
+                        
+                        # Convert markdown bold to HTML for proper styling
+                        import re
+                        
+                        # First, convert **text** at the start of a line (section headers) to <h3>
+                        # This pattern matches ** at the start of a line or after newline
+                        behavioral_assessment_html = re.sub(r'(^|\n)\*\*([^*]+)\*\*', r'\1<h3>\2</h3>', behavioral_assessment)
+                        
+                        # Then convert remaining **text** (inline bold) to <strong> tags
+                        behavioral_assessment_html = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', behavioral_assessment_html)
+                        
+                        # Display the assessment with custom styling
+                        st.markdown(f'<div class="behavioral-assessment">{behavioral_assessment_html}</div>', unsafe_allow_html=True)
+                        
+                    except Exception as e:
+                        st.error(f"❌ Error generating behavioral assessment: {str(e)}")
 
         else:
             st.error("No emotions detected in the video.")
