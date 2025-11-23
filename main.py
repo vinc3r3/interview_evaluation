@@ -299,7 +299,7 @@ if st.button("Analyse the Interview"):
             )
 
             st.subheader("🗣️ Big 5 Personality Trait Analysis")
-            st.plotly_chart(fig_big5, use_container_width=True, height=300)
+            st.plotly_chart(fig_big5, use_container_width=True)
         else:
             st.error(f"Error analyzing personality traits: {personality_result.get('error', 'Unknown error')}")
 
